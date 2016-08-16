@@ -1,25 +1,110 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Activity exploration"
+author: "Anikó Medgyesi"
+date: '2016 augusztus 16 '
+output: html_document
 ---
+#First assignment of Reproducable Research Course
+
+##Loading and preprocessing the data
+
+###Data Description:
+
+Introduction
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the “quantified self” movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+The data for this assignment can be downloaded from the course web site:
+
+Dataset: Activity monitoring data [52K]
+The variables included in this dataset are:
+
+*steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+*date: The date on which the measurement was taken in YYYY-MM-DD format
+*interval: Identifier for the 5-minute interval in which measurement was taken
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Load and processing script:
+```{r activity_load}
+df=read.csv("activity.csv", stringsAsFactors=FALSE)
+df$date<-as.Date(df$date);
+summary(df)
+
+```
 
 
-## Loading and preprocessing the data
+##What is mean total number of steps taken per day?
+###Calculate the total number of steps taken per day
+
+```{r activity_mean}
+library(dplyr)
+by_date_df<-group_by(df, date)
+by_date_step<-summarise(by_date_df,sum_steps=sum(steps))
+```
+
+###Show it on a histogram
+```{r activity_mean_histogram}
+hist(by_date_step[[2]], main="Frequency of the Number of steps per day", xlab="Number of steps per day" )
+```
+
+##What is the average daily activity pattern?
+
+###Daily average of steps:
+```{r activity_interval_plot}
+by_date_step_desc<-summarise(by_date_df, Mean=mean(steps), Median=median(steps),max=max(steps))
+
+plot(by_date_step_desc$Mean~by_date_step_desc$date, type="l", xlab="Date", ylab="Average Steps per day")
+```
+
+###Calculate and report the mean and median of the total number of steps taken per day
+```{r mean and median}
+by_interval_df<-group_by(df, interval)
+by_interval_steps<-summarise(by_interval_df,mean_steps=mean(steps, na.rm=TRUE))
+plot(by_interval_steps$interval~by_interval_steps$mean_steps,type="l", xlab="Date", ylab="Average Steps per day")
+abline(v = max(by_interval_steps$mean_steps), col="red", lwd=3, lty=2)
+```
+##Imputing missing values
+
+###Number of missing values:
+```{r missing_values}
+ok<-complete.cases(df)
+sum(!ok)
+
+```
+Strategy:
+Get the daily average of the given interval:
+```{r impute data}
+df_avgstep_interval<-group_by(df,interval)%>%
+  summarise(avgstep=round(mean(steps, na.rm=TRUE),0))
+```
+###Histogram of the imputed dataset:
+```{r impute data histogram}
+df2 <- df %>%
+  mutate(steps = ifelse(is.na(steps),df_avgstep_interval$avgstep,steps))
+by_date_df2<-group_by(df2, date)
+by_date_step2<-summarise(by_date_df2,sum_steps=sum(steps))
+hist(by_date_step2[[2]], main="Frequency of the Number of steps per day without NA", xlab="Number of steps per day" )
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+###Calculate weekdays and weekends and add as a factor:
+```{r weekdays calculation}
+df3<-(weekdays(df$date) %in% c("vasárnap", "szombat"))
+df3<-factor(df3, labels = c("weekend", "weekday"))
+df2<-mutate(df2, wd=df3)
+df_avgstep_wd<-aggregate(steps~ wd+interval,df2,  mean )
+```
+
+###Show the difference of weekends and weekdays:
+```{r weekdays visualisation}
+library(lattice)
+xyplot(steps~interval | wd,data=df_avgstep_wd, layout=c(1,2), type='l',ylab="Number of steps")
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
