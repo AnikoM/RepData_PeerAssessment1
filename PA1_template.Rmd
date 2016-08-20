@@ -81,6 +81,7 @@ Get the daily average of the given interval:
 ```{r impute data}
 df_avgstep_interval<-group_by(df,interval)%>%
   summarise(avgstep=round(mean(steps, na.rm=TRUE),0))
+summary(df)
 ```
 ###Histogram of the imputed dataset:
 ```{r impute data histogram}
